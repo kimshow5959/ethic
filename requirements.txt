@@ -1,6 +1,6 @@
 streamlit==1.16.0
 librosa==0.8.1
-tensorflow>=2.10.0
+tensorflow-cpu==2.9.0  # TensorFlow의 CPU 버전으로 변경 (배포에서 이 버전이 더 안정적일 수 있음)
 scikit-learn==1.0.2
 numpy==1.21.5
 matplotlib==3.5.1
