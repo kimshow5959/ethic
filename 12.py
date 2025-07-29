@@ -1,7 +1,6 @@
 import streamlit as st
 import os
 import numpy as np
-import librosa
 import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
 import tensorflow as tf
@@ -9,6 +8,8 @@ from tensorflow.keras import layers, models
 import io
 import soundfile as sf
 import base64
+from scipy.fft import fft
+from scipy.signal import spectrogram
 
 # 페이지 설정
 st.set_page_config(layout='wide', page_title='EthicApp')
@@ -32,18 +33,31 @@ def generate_synthetic_audio(is_real=True, duration=3, sr=22050):
         audio = 0.5 * np.sin(2 * np.pi * freq * t) + 0.1 * np.random.randn(len(t))
     return audio, sr
 
-# MFCC 특성 추출 함수
-def extract_mfcc(audio, sr, n_mfcc=13):
-    mfcc = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=n_mfcc)
+# MFCC 특성 추출 함수 (scipy + numpy 사용)
+def extract_mfcc(audio, sr, n_mfcc=13, n_fft=2048, hop_length=512, n_mels=40):
+    # 음성에서 퓨리에 변환 수행
+    freqs, times, Sxx = spectrogram(audio, fs=sr, nperseg=n_fft, noverlap=hop_length)
+    
+    # Mel 필터 뱅크 생성 (MFCC에서 사용하는 Mel 축을 변환)
+    mel_filters = np.zeros((n_mels, len(freqs)))
+    mel_freqs = np.linspace(0, sr / 2, n_mels + 2)
+    for i in range(1, len(mel_freqs) - 1):
+        start = int(np.floor(mel_freqs[i - 1] / (sr / 2) * len(freqs)))
+        end = int(np.floor(mel_freqs[i] / (sr / 2) * len(freqs)))
+        mel_filters[i - 1, start:end] = np.linspace(0, 1, end - start)
+    
+    # Mel 스펙트로그램 계산
+    mel_spectrogram = np.dot(mel_filters, np.abs(Sxx))
+    mel_log = np.log(mel_spectrogram + 1e-9)
+    
+    # MFCC 계산 (DCT 사용)
+    mfcc = np.fft.dct(mel_log, type=2, axis=0)[:n_mfcc]
     return np.mean(mfcc.T, axis=0)
 
 # 스펙트로그램 이미지 추출 함수
 def extract_spectrogram(audio, sr, n_mels=128, hop_length=512):
-    S = librosa.feature.melspectrogram(y=audio, sr=sr, n_mels=n_mels, hop_length=hop_length)
-    S_dB = librosa.power_to_db(S, ref=np.max)
-    S_dB = S_dB[:, :128]
-    if S_dB.shape[1] < 128:
-        S_dB = np.pad(S_dB, ((0, 0), (0, 128 - S_dB.shape[1])), mode='constant')
+    _, _, Sxx = spectrogram(audio, fs=sr, nperseg=2048, noverlap=hop_length)
+    S_dB = 10 * np.log10(Sxx)
     return S_dB
 
 # 오디오 재생 플레이어 생성 함수
@@ -113,7 +127,7 @@ def run_deepfake_detection():
     uploaded_file = st.file_uploader("또는 WAV 파일 업로드", type=["wav"])
     if uploaded_file:
         try:
-            audio, sr = librosa.load(uploaded_file, sr=22050)
+            audio, sr = sf.read(uploaded_file)
             st.session_state['audio'] = audio
             st.session_state['sr'] = sr
             st.session_state['is_real'] = None
@@ -126,9 +140,8 @@ def run_deepfake_detection():
     if 'audio' in st.session_state:
         st.subheader("2단계: 스펙트로그램 확인")
         fig, ax = plt.subplots()
-        S = librosa.feature.melspectrogram(y=st.session_state['audio'], sr=st.session_state['sr'])
-        S_dB = librosa.power_to_db(S, ref=np.max)
-        librosa.display.specshow(S_dB, sr=st.session_state['sr'], x_axis='time', y_axis='mel', ax=ax)
+        S_dB = extract_spectrogram(st.session_state['audio'], st.session_state['sr'])
+        ax.imshow(S_dB, aspect='auto', cmap='inferno', origin='lower')
         ax.set(title='Mel 스펙트로그램')
         st.pyplot(fig)
 
@@ -191,12 +204,9 @@ if menu == "홈":
         3. **투명성 (Transparency)**: AI 시스템의 동작 원리를 명확히 해야 합니다.
         4. **프라이버시 보호 (Privacy Protection)**: AI는 사용자 데이터를 안전하게 보호해야 합니다.
         """)
-
 elif menu == "AI 윤리 개요":
     st.write("AI 윤리 원칙에 대해 더 알고 싶다면, 위의 설명을 참고하세요.")
-
 elif menu == "딥페이크 음성":
     run_deepfake_detection()
-
 elif menu == "참고 자료":
     st.write("참고 자료 섹션입니다. 관련 문서 및 링크를 제공합니다.")
