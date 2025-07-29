@@ -112,12 +112,15 @@ def run_deepfake_detection():
 
     uploaded_file = st.file_uploader("또는 WAV 파일 업로드", type=["wav"])
     if uploaded_file:
-        audio, sr = librosa.load(uploaded_file, sr=22050)
-        st.session_state['audio'] = audio
-        st.session_state['sr'] = sr
-        st.session_state['is_real'] = None
-        st.markdown("**✔️ 업로드된 음성**")
-        st.markdown(get_audio_player(audio, sr), unsafe_allow_html=True)
+        try:
+            audio, sr = librosa.load(uploaded_file, sr=22050)
+            st.session_state['audio'] = audio
+            st.session_state['sr'] = sr
+            st.session_state['is_real'] = None
+            st.markdown("**✔️ 업로드된 음성**")
+            st.markdown(get_audio_player(audio, sr), unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"파일을 로드하는 데 실패했습니다: {e}")
 
     # 2단계: 스펙트로그램 시각화
     if 'audio' in st.session_state:
@@ -163,16 +166,12 @@ if menu == "홈":
     with content_col:
         st.subheader("AI Ethics and Responsibility")
         st.video(url)
-        st.write("""
-        인공지능(AI)은 현대 사회를 변화시키는 핵심 기술입니다.  
+        st.write("""AI는 현대 사회를 변화시키는 핵심 기술입니다.  
         그러나 AI의 사용에는 윤리적 고려가 반드시 따라야 하며, 우리는 다음과 같은 원칙을 따라야 합니다:
         - **공정성 (Fairness)**  
         - **책임성 (Accountability)**  
         - **투명성 (Transparency)**  
-        - **프라이버시 보호 (Privacy Protection)**
-
-        **AI 윤리적 사고**에 대한 여러분의 의견을 아래에 남겨주세요.
-        """)
+        - **프라이버시 보호 (Privacy Protection)**""")
         
         # 의견 제출 폼
         user_opinion = st.text_area("여러분의 의견을 남겨주세요:")
