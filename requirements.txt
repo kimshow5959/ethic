@@ -1,7 +1,6 @@
 streamlit
-librosa
-tensorflow-cpu
-scikit-learn
 numpy
 matplotlib
+scikit-learn
 soundfile
+scipy
