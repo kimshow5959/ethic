@@ -1,6 +1,5 @@
 import streamlit as st
 import os
-import app
 
 # 페이지 설정
 st.set_page_config(layout='wide', page_title='EthicApp')
