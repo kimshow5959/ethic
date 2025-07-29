@@ -1,7 +1,7 @@
-streamlit
-librosa
-tensorflow
-scikit-learn
-numpy
-matplotlib
-soundfile
+streamlit==1.16.0
+librosa==0.8.1
+tensorflow==2.11.0
+scikit-learn==1.0.2
+numpy==1.21.5
+matplotlib==3.5.1
+soundfile==0.10.3.post1
